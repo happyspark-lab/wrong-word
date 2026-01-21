@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>语文期末冲刺 (6天完成版)</title>
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        :root {
+            /* 冲刺模式使用更醒目的红色/橙色调 */
+            --primary: #ea580c; 
+            --primary-hover: #c2410c;
+            --bg: #fff7ed;
+            --card: #ffffff;
+            --text: #431407;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: var(--card);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        header { text-align: center; margin-bottom: 10px; }
+        h1 { color: var(--primary); font-size: 2rem; margin-bottom: 10px; }
+        .subtitle { color: #9a3412; font-size: 0.95rem; font-weight: bold; }
+
+        .setup-panel {
+            border: 2px dashed #fdba74;
+            border-radius: 12px;
+            padding: 20px;
+            background: #fff;
+            transition: all 0.3s;
+        }
+
+        .day-selector-area {
+            background: #ffedd5;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #fed7aa;
+        }
+
+        .day-select {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.1rem;
+            border: 2px solid #f97316;
+            border-radius: 8px;
+            color: #c2410c;
+            background: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .preview-box {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 5px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .setting-group { display: flex; align-items: center; gap: 8px; }
+        
+        .main-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 15px rgba(234, 88, 12, 0.3);
+        }
+        .main-btn:hover { background: var(--primary-hover); transform: translateY(-2px); }
+
+        /* Running Mode UI */
+        .running-ui { display: none; text-align: center; padding: 20px 0; }
+        
+        .status-badge {
+            display: inline-block;
+            background: #ffedd5;
+            color: var(--primary);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .big-word-display {
+            font-size: 4rem;
+            font-weight: 800;
+            color: var(--text);
+            margin: 30px 0;
+            min-height: 80px;
+            font-family: "KaiTi", "楷体", serif;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: #fee2e2;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .control-btns { display: flex; justify-content: center; gap: 15px; }
+        .control-btn {
+            padding: 10px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-pause { background: #fef9c3; color: #b45309; border: 1px solid #fde047; }
+        .btn-stop { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+
+        .answer-list {
+            margin-top: 30px;
+            text-align: left;
+            background: #fff7ed;
+            padding: 20px;
+            border-radius: 12px;
+            display: none;
+        }
+        .answer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+        }
+        .answer-item {
+            background: white;
+            padding: 12px 5px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #c2410c;
+            border: 1px solid #fdba74;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .expand-toggle {
+            text-align: center;
+            color: #999;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            text-decoration: underline;
+        }
+        #customInputArea { display: none; margin-top: 10px;}
+        textarea { width: 100%; height: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🔥 语文期末冲刺 (6天完成)</h1>
+        <p class="subtitle">共 188 个词语 | 每日约 32 个 | 考前加油！</p>
+    </header>
+
+    <div id="setupArea" class="setup-panel">
+        
+        <div class="day-selector-area">
+            <label style="display:block; margin-bottom:8px; font-weight:bold; color:#c2410c;">📅 请选择冲刺进度：</label>
+            <select id="daySelect" class="day-select" onchange="previewWords()">
+                </select>
+            <div class="preview-box" id="wordPreview">
+                </div>
+        </div>
+
+        <div class="settings-row">
+            <div class="setting-group">
+                <label>每词朗读:</label>
+                <select id="repeatCount">
+                    <option value="1">1次</option>
+                    <option value="2" selected>2次</option>
+                    <option value="3">3次</option>
+                </select>
+            </div>
+            <div class="setting-group">
+                <label>写字时间:</label>
+                <select id="waitTime">
+                    <option value="5">5秒</option>
+                    <option value="8" selected>8秒</option>
+                    <option value="12">12秒</option>
+                    <option value="15">15秒</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="main-btn" onclick="initDictation()">🚀 开始今日冲刺</button>
+
+        <div class="expand-toggle" onclick="toggleCustomArea()">+ 我想自己粘贴其他词语/上传文件</div>
+        <div id="customInputArea">
+             <p style="font-size:0.8rem; color:#666; margin-bottom:5px;">粘贴新词后，上方“选择进度”将失效，改为听写下方全部内容。</p>
+             <textarea id="customWordInput" placeholder="在此处粘贴临时想听写的词语..."></textarea>
+             <input type="file" accept="application/pdf" onchange="handlePdfUpload(event)" style="margin-top:5px;">
+             <div id="ocrStatus" style="font-size:0.8rem; color:green;"></div>
+        </div>
+    </div>
+
+    <div id="runningArea" class="running-ui">
+        <div class="status-badge" id="progressText">进度: 0 / 0</div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="big-word-display" id="wordDisplay">准备好了吗？</div>
+        <div style="color: #64748b; margin-bottom: 20px;" id="statusMsg">点击下方按钮开始</div>
+
+        <div class="control-btns">
+            <button class="control-btn btn-pause" id="pauseBtn" onclick="togglePause()">暂停</button>
+            <button class="control-btn btn-stop" onclick="stopDictation()">结束</button>
+        </div>
+
+        <div class="answer-list" id="answerList"></div>
+    </div>
+</div>
+
+<script>
+    // --- 1. 内置词库 (188个词语) ---
+    const rawData = "镶嵌、镜匣、仰慕、矮小、播种、吩咐、嘱咐、榨菜、箩筐、纠缠、汛期、间隔、懒惰、平衡、协调、忠臣、承诺、得罪、胆怯、拒绝、荆棘、俯视、一枚金币、邮筒、赤道、侵略、党章、妨碍、隐蔽、陷阱、拐弯、酬谢、叮嘱、崩塌、焦虑、宣誓、谎话、延期、一辆、十趟、托举、长辈、家祭、乃翁、恃强凌弱、拘留、悲哀、上吐下泻、潜伏、脱胎换骨、如履薄被、毁灭、金碧辉煌、宫殿、丘陵、饱览、宏伟、闯荡、传统、开销、拍摄、煤炭、病菌、安歇、狭窄、勉强、蚕丝、席子、陪伴、礼毕、利益、发愁、寺庙、愈合、瞬间、狼藉、书籍、寂静、损失、牺牲、提醒、伤心、热泪盈眶、运转、厉害、经历、鼻子、激励、必须、需要、钦佩、借钱、铺垫、愤怒、反馈、贡献、核潜艇、钙片、奖励、蕴含、郁闷、双引号、曾经、出神入化、诱发、道谢、彻底、脱掉、安逸、篮球、赔偿、考试、功夫、茂盛、历史、宽容、足智多谋、猎豹、爆裂、脾气、捷径、鼓励、分析、自责、秉公执法、健康、训斥、清晰、报效、派送、浮现、围绕、况且、甚至、垂头丧气、严谨、宽大、机械、责备、稀罕、狮子、煤屑、不屑、琐屑、悲伤、赫赫有名、心旷神怡、蔺相如、廉颇、津津有味、畏首畏尾、千辛万苦、千言万语、隆重、悠然、避难、珍惜、香皂、浇水、郊外、市郊、规划、强迫、谦虚、口罩、遮住、鸵鸟、黎明、皎洁、属于、躺下、般配、勒索、勤劳、摇晃、粗糙、值得、人类、画眉、荒唐、勤奋、不可思议";
+    
+    // 转换为数组
+    const allWords = rawData.split(/[、\s]+/).filter(w => w.length > 0);
+    
+    // *** 关键修改：每天听写数量设置为 32 个，以便在 6 天内完成 ***
+    // 188 / 6 ≈ 31.3
+    const WORDS_PER_DAY = 32;
+
+    // --- Global Variables ---
+    let currentSessionList = [];
+    let currentIndex = 0;
+    let isRunning = false;
+    let isPaused = false;
+    let synth = window.speechSynthesis;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    // --- Initialization ---
+    window.onload = function() {
+        initDaySelector();
+    }
+
+    function initDaySelector() {
+        const select = document.getElementById('daySelect');
+        const totalDays = Math.ceil(allWords.length / WORDS_PER_DAY);
+        
+        select.innerHTML = '';
+        for (let i = 0; i < totalDays; i++) {
+            const start = i * WORDS_PER_DAY + 1;
+            const end = Math.min((i + 1) * WORDS_PER_DAY, allWords.length);
+            const count = end - start + 1;
+            
+            const option = document.createElement('option');
+            option.value = i;
+            option.text = `📅 第 ${i + 1} 天 (词语 ${start}-${end}) [共${count}个]`;
+            select.appendChild(option);
+        }
+        previewWords();
+    }
+
+    function previewWords() {
+        const dayIndex = document.getElementById('daySelect').value;
+        const start = dayIndex * WORDS_PER_DAY;
+        const end = start + WORDS_PER_DAY;
+        const words = allWords.slice(start, end);
+        
+        document.getElementById('wordPreview').innerText = "包含： " + words.join("、");
+    }
+
+    function toggleCustomArea() {
+        const area = document.getElementById('customInputArea');
+        area.style.display = area.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // --- Logic for Dictation ---
+
+    function initDictation() {
+        const customInput = document.getElementById('customWordInput').value.trim();
+        
+        if (customInput.length > 0) {
+            currentSessionList = processTextToWords(customInput);
+            if(currentSessionList.length === 0) {
+                alert("未检测到有效中文词语，请检查输入。");
+                return;
+            }
+        } else {
+            const dayIndex = parseInt(document.getElementById('daySelect').value);
+            const start = dayIndex * WORDS_PER_DAY;
+            const end = start + WORDS_PER_DAY;
+            currentSessionList = allWords.slice(start, end);
+        }
+
+        // 切换界面
+        document.getElementById('setupArea').style.display = 'none';
+        document.getElementById('runningArea').style.display = 'block';
+        document.getElementById('answerList').style.display = 'none';
+        document.getElementById('answerList').innerHTML = '';
+
+        startSession();
+    }
+
+    function processTextToWords(text) {
+        const extracted = text.match(/[\u4e00-\u9fa5]+/g);
+        if (!extracted) return [];
+        return extracted.filter(w => w.length >= 1);
+    }
+
+    // --- Core Dictation Loop ---
+
+    async function startSession() {
+        isRunning = true;
+        isPaused = false;
+        currentIndex = 0;
+        document.getElementById('pauseBtn').innerText = '暂停';
+        
+        const display = document.getElementById('wordDisplay');
+        const status = document.getElementById('statusMsg');
+        
+        // 倒计时
+        for(let i=3; i>0; i--) {
+            display.innerText = i;
+            await sleep(1000);
+        }
+
+        while (currentIndex < currentSessionList.length && isRunning) {
+            updateProgress();
+            await checkPause();
+            if (!isRunning) break;
+
+            const word = currentSessionList[currentIndex];
+            
+            // 听写过程
+            display.innerText = `第 ${currentIndex + 1} 个`;
+            display.style.color = '#431407';
+            status.innerText = '正在朗读...';
+
+            const repeat = parseInt(document.getElementById('repeatCount').value);
+
+            for (let r=0; r < repeat; r++) {
+                await checkPause(); 
+                if (!isRunning) break;
+                
+                await speakWord(word);
+                
+                if (r < repeat - 1) {
+                    await sleep(1500); 
+                }
+            }
+
+            // 写字等待时间
+            if (!isRunning) break;
+            status.innerText = '请书写...';
+            display.style.color = '#ccc'; 
+            
+            const waitTime = parseInt(document.getElementById('waitTime').value) * 10; 
+            for(let t=0; t<waitTime; t++) { 
+                await checkPause();
+                if (!isRunning) break;
+                await sleep(100);
+            }
+
+            currentIndex++;
+        }
+
+        if (isRunning) {
+            finishDictation();
+        }
+    }
+
+    function speakWord(text) {
+        return new Promise((resolve) => {
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'zh-CN'; 
+            u.rate = 0.9; 
+            
+            u.onend = resolve;
+            u.onerror = (e) => {
+                console.error("Speech error", e);
+                resolve(); 
+            };
+            synth.speak(u);
+        });
+    }
+
+    function updateProgress() {
+        const total = currentSessionList.length;
+        const current = currentIndex + 1;
+        document.getElementById('progressText').innerText = `进度: ${currentIndex} / ${total}`;
+        const pct = (currentIndex / total) * 100;
+        document.getElementById('progressFill').style.width = `${pct}%`;
+    }
+
+    async function checkPause() {
+        while (isPaused && isRunning) {
+            await sleep(200);
+        }
+    }
+
+    function togglePause() {
+        isPaused = !isPaused;
+        const btn = document.getElementById('pauseBtn');
+        if (isPaused) {
+            synth.cancel(); 
+            btn.innerText = '继续';
+            document.getElementById('statusMsg').innerText = '已暂停';
+        } else {
+            btn.innerText = '暂停';
+        }
+    }
+
+    function stopDictation() {
+        isRunning = false;
+        synth.cancel();
+        document.getElementById('runningArea').style.display = 'none';
+        document.getElementById('setupArea').style.display = 'block';
+    }
+
+    function finishDictation() {
+        document.getElementById('wordDisplay').innerText = "🎉 冲刺完成！";
+        document.getElementById('statusMsg').innerText = "考前突击结束，快检查错别字";
+        
+        const list = document.getElementById('answerList');
+        let html = '<h3>✅ 答案核对</h3><div class="answer-grid">';
+        currentSessionList.forEach((w, i) => {
+            html += `<div class="answer-item"><span style="font-size:0.8em;color:#aaa">${i+1}.</span> <br>${w}</div>`;
+        });
+        html += '</div>';
+        
+        list.innerHTML = html;
+        list.style.display = 'block';
+        document.getElementById('pauseBtn').style.display = 'none';
+        
+        setTimeout(() => {
+            list.scrollIntoView({ behavior: 'smooth' });
+        }, 500);
+    }
+
+    // --- Extra: PDF Support ---
+    async function handlePdfUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const statusEl = document.getElementById('ocrStatus');
+        statusEl.innerText = '⏳ 正在解析 PDF...';
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                fullText += textContent.items.map(item => item.str).join(' ');
+            }
+            document.getElementById('customWordInput').value = fullText;
+            statusEl.innerText = '✅ 解析成功，请点击“开始今日冲刺”';
+        } catch (e) {
+            statusEl.innerText = '❌ 解析失败';
+        }
+    }
+
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+</script>
+
+</body>
+</html>
